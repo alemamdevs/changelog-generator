@@ -1,0 +1,17 @@
+{
+    "agents": [
+        "copilot"
+    ],
+    "guidelines": true,
+    "herd_mcp": false,
+    "mcp": true,
+    "packages": [
+        "laravel/ai"
+    ],
+    "sail": false,
+    "skills": [
+        "pest-testing",
+        "ai-sdk-development",
+        "laravel-specialist"
+    ]
+}
