@@ -11,7 +11,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register application service providers that need to be loaded early.
+        // Ensure the ChangelogServiceProvider bindings are available without
+        // requiring manual config changes.
+        $this->app->register(\App\Providers\ChangelogServiceProvider::class);
     }
 
     /**
