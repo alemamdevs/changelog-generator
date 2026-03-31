@@ -14,12 +14,24 @@ final class AIResponse extends Model
 {
     protected $table = 'ai_responses';
 
-    protected $guarded = ['id'];
+    /**
+     * Get the attributes that aren't mass assignable.
+     */
+    protected function guarded(): array
+    {
+        return ['id'];
+    }
 
-    protected $casts = [
-        'structured_json' => 'array',
-        'meta' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    /**
+     * Get the attributes that should be cast.
+     */
+    protected function casts(): array
+    {
+        return [
+            'structured_json' => 'array',
+            'meta' => 'array',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
 }

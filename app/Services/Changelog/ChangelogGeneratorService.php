@@ -59,11 +59,8 @@ final class ChangelogGeneratorService
     // Prefer structured JSON from the AI response, fallback to parsing raw text
     $aiResult = $aiResponse->getStructuredJson() ?? json_decode($aiResponse->getRawText() ?? '', true) ?? [];
 
-        // Persist everything in a transaction (fall back to direct execution when
-        // the DB facade / application container is not available, which can
-        // happen in lightweight unit tests that instantiate this service
-        // without booting the framework).
-        return $this->runTransaction(function () use ($aiResult, $parsed, $meta) {
+        // Persist everything in a transaction
+        return DB::transaction(function () use ($aiResult, $parsed, $meta) {
             $version = (string) ($meta['version'] ?? ($meta['tag'] ?? 'v0.0.0'));
             $branch = (string) ($meta['branch'] ?? ($meta['ref'] ?? ''));
 
@@ -107,30 +104,6 @@ final class ChangelogGeneratorService
 
             return $release;
         });
-    }
-
-    /**
-     * Execute a callable inside a DB transaction when possible. If the DB
-     * facade or container is not available, execute the callable directly.
-     *
-     * This makes the service easier to unit test without booting the framework.
-     *
-     * @template T
-     * @param callable():T $cb
-     * @return T
-     */
-    private function runTransaction(callable $cb)
-    {
-        try {
-            // Use the DB facade if available
-            if (class_exists(\Illuminate\Support\Facades\DB::class)) {
-                return \Illuminate\Support\Facades\DB::transaction($cb);
-            }
-        } catch (\Throwable $e) {
-            // If anything goes wrong (no facade root, etc.) fall through to direct call
-        }
-
-        return $cb();
     }
 
     /**

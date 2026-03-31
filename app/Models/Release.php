@@ -8,38 +8,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
-/**
- * Class Release
- *
- * @property int $id
- * @property string $version
- * @property string $branch
- * @property Carbon $generated_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- *
- * @property-read \Illuminate\Database\Eloquent\Collection|Commit[] $commits
- * @property-read \Illuminate\Database\Eloquent\Collection|Changelog[] $changelogs
- */
 class Release extends Model
 {
     /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array<int,string>
+     * Get the attributes that aren't mass assignable.
      */
-    protected array $guarded = ['id'];
+    protected function guarded(): array
+    {
+        return ['id'];
+    }
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string,string>
+     * Get the attributes that should be cast.
      */
-    protected array $casts = [
-        'generated_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'generated_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
 
     /**
      * Get the commits for the release.

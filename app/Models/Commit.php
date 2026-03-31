@@ -26,22 +26,24 @@ use Illuminate\Support\Carbon;
 class Commit extends Model
 {
     /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array<int,string>
+     * Get the attributes that aren't mass assignable.
      */
-    protected array $guarded = ['id'];
+    protected function guarded(): array
+    {
+        return ['id'];
+    }
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string,string>
+     * Get the attributes that should be cast.
      */
-    protected array $casts = [
-        'authored_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'authored_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
 
     /**
      * Get the release that owns the commit.

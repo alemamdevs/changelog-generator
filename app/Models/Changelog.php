@@ -25,22 +25,24 @@ use Illuminate\Support\Carbon;
 class Changelog extends Model
 {
     /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array<int,string>
+     * Get the attributes that aren't mass assignable.
      */
-    protected array $guarded = ['id'];
+    protected function guarded(): array
+    {
+        return ['id'];
+    }
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string,string>
+     * Get the attributes that should be cast.
      */
-    protected array $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'position' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'position' => 'integer',
+        ];
+    }
 
     /**
      * Get the release that owns the changelog entry.
