@@ -6,17 +6,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 class Release extends Model
 {
     /**
      * Get the attributes that aren't mass assignable.
      */
-    protected function guarded(): array
-    {
-        return ['id'];
-    }
+    protected $guarded = ['id'];
 
     /**
      * Get the attributes that should be cast.
@@ -24,6 +20,9 @@ class Release extends Model
     protected function casts(): array
     {
         return [
+            'major' => 'integer',
+            'minor' => 'integer',
+            'patch' => 'integer',
             'generated_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -44,5 +43,21 @@ class Release extends Model
     public function changelogs(): HasMany
     {
         return $this->hasMany(Changelog::class, 'release_id', 'id')->orderBy('position');
+    }
+
+    /**
+     * Get processed commits attached to this release.
+     */
+    public function processedCommits(): HasMany
+    {
+        return $this->hasMany(ProcessedCommit::class, 'release_id', 'id');
+    }
+
+    /**
+     * Get webhook deliveries that generated this release.
+     */
+    public function webhookDeliveries(): HasMany
+    {
+        return $this->hasMany(WebhookDelivery::class, 'release_id', 'id');
     }
 }

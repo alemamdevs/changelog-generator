@@ -7,7 +7,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validate incoming Git webhook payloads (GitHub/GitLab).
+ * Validate incoming GitHub / GitLab push webhook payloads.
  */
 final class GitWebhookRequest extends FormRequest
 {
@@ -22,13 +22,21 @@ final class GitWebhookRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * We require an array of commits (both GitHub & GitLab push events include this).
      */
     public function rules(): array
     {
         return [
+            'ref' => ['required', 'string', 'max:255'],
+            'repository' => ['nullable', 'array'],
+            'repository.full_name' => ['nullable', 'string', 'max:255'],
+            'project' => ['nullable', 'array'],
+            'project.path_with_namespace' => ['nullable', 'string', 'max:255'],
             'commits' => ['required', 'array'],
+            'commits.*.id' => ['required', 'string', 'max:64'],
+            'commits.*.message' => ['required', 'string'],
+            'commits.*.timestamp' => ['nullable', 'date'],
+            'commits.*.author' => ['nullable', 'array'],
+            'commits.*.author.name' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

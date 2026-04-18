@@ -1,30 +1,25 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Auto Changelog Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url('/') }}">Changelog Generator</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="nav">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-            <li class="nav-item"><a class="nav-link" href="{{ route('admin.releases.index') }}">Releases</a></li>
-          </ul>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+            <a href="{{ url('/') }}" class="text-lg font-semibold tracking-tight text-white">Auto Changelog</a>
+            <nav class="flex items-center gap-2 text-sm">
+                <a href="{{ route('admin.releases.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Releases</a>
+                <a href="{{ route('admin.webhooks.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Webhooks</a>
+                <a href="{{ route('admin.webhooks.configuration') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Configuration</a>
+            </nav>
         </div>
-      </div>
-    </nav>
+    </header>
 
-    <main class="container">
-      @yield('content')
+    <main class="mx-auto max-w-7xl px-6 py-8">
+        @yield('content')
     </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
-  </html>
+</body>
+</html>

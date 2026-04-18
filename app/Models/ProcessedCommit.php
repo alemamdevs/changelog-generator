@@ -5,15 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/**
- * Model representing a raw AI response for auditing and debugging.
- * Stored as raw_text and optional structured_json.
- */
-final class AIResponse extends Model
+final class ProcessedCommit extends Model
 {
-    protected $table = 'ai_responses';
-
     /**
      * Get the attributes that aren't mass assignable.
      */
@@ -25,10 +20,17 @@ final class AIResponse extends Model
     protected function casts(): array
     {
         return [
-            'structured_json' => 'array',
-            'meta' => 'array',
+            'processed_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the release associated with this processed commit.
+     */
+    public function release(): BelongsTo
+    {
+        return $this->belongsTo(Release::class, 'release_id', 'id');
     }
 }

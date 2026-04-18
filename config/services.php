@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'github' => [
+        'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
+    ],
+
+    'gitlab' => [
+        'webhook_secret' => env('GITLAB_WEBHOOK_SECRET'),
+    ],
+
 ];

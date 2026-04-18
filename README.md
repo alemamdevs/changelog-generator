@@ -1,59 +1,139 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Auto Changelog Generator (Laravel)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Production-ready changelog generator that ingests GitHub push webhooks, processes commits asynchronously, categorizes changes using Conventional Commits with AI fallback, and generates structured Markdown changelog releases with semantic versioning.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- GitHub push webhook ingestion (`/api/github/webhooks/push`)
+- HMAC signature verification via `X-Hub-Signature-256`
+- Redis queue-first architecture for scalable processing
+- Duplicate prevention by repository + commit hash
+- Conventional Commit categorization: `feature`, `fix`, `refactor`, `chore`, `docs`, `breaking`
+- AI fallback classification for non-conventional commit messages
+- Semantic version bump automation (`major`/`minor`/`patch`)
+- Markdown changelog file generation and persistence
+- Admin monitoring UI for releases and webhook deliveries
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture Summary
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- `GitWebhookController` accepts GitHub push payloads and queues processing.
+- `ProcessGitHubPushWebhookJob` handles asynchronous processing.
+- `WebhookCommitProcessingService` orchestrates dedup, categorization, release creation, and markdown rendering.
+- Repository layer handles persistence abstractions.
 
-## Learning Laravel
+## Database Schema (Core)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- `webhook_deliveries`: incoming webhook audit log and processing status
+- `processed_commits`: deduplication table with unique `(repository_full_name, commit_hash)`
+- `releases`: semantic release metadata + markdown output
+- `commits`: enriched commit records with category, scope, breaking flag, source
+- `changelogs`: structured changelog entries per release
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Local Setup
 
-## Laravel Sponsors
+1. Install dependencies:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```powershell
+composer install
+npm install
+```
 
-### Premium Partners
+2. Configure environment:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```powershell
+Copy-Item .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+3. Set required `.env` values:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```dotenv
+APP_URL=http://localhost:8000
 
-## Code of Conduct
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=changelog_generator
+DB_USERNAME=root
+DB_PASSWORD=
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+QUEUE_CONNECTION=redis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
 
-## Security Vulnerabilities
+GITHUB_WEBHOOK_SECRET=your-strong-secret
+GITLAB_WEBHOOK_SECRET=your-strong-secret
+CHANGELOG_QUEUE_CONNECTION=redis
+CHANGELOG_QUEUE_NAME=changelog
+CHANGELOG_DEFAULT_REPOSITORY=owner/repository
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. Migrate + start app:
 
-## License
+```powershell
+php artisan migrate
+npm run build
+php artisan serve
+php artisan queue:work redis --queue=changelog,default --tries=3 --backoff=3
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## CLI Usage
+
+Generate changelog from local git range (sync):
+
+```powershell
+php artisan changelog:generate --repo="C:\path\to\repo" --from="v1.2.0" --to="HEAD" --branch="main"
+```
+
+Queue mode:
+
+```powershell
+php artisan changelog:generate --repo="C:\path\to\repo" --from="HEAD~50" --to="HEAD" --branch="main" --queue
+```
+
+## GitHub Webhook Configuration
+
+1. In GitHub repository settings, go to **Webhooks** → **Add webhook**.
+2. Set:
+	- **Payload URL**: `https://your-domain.com/api/webhooks/push`
+	- **Content type**: `application/json`
+	- **Secret**: same value as `GITHUB_WEBHOOK_SECRET`
+	- **Events**: select **Just the push event**
+3. Ensure your queue worker is running.
+4. Push a commit and verify delivery status in:
+	- `GET /admin/webhooks`
+	- `GET /admin/releases`
+
+Legacy GitHub endpoint (optional): `https://your-domain.com/api/github/webhooks/push`
+
+## GitLab Webhook Configuration
+
+1. In GitLab project settings, go to **Settings → Webhooks**.
+2. Set:
+	- **URL**: `https://your-domain.com/api/webhooks/push`
+	- **Secret token**: same value as `GITLAB_WEBHOOK_SECRET`
+	- **Trigger**: enable **Push events**
+3. Ensure your queue worker is running.
+4. Push a commit and verify delivery status in:
+	- `GET /admin/webhooks`
+	- `GET /admin/releases`
+
+Legacy GitLab endpoint (optional): `https://your-domain.com/api/gitlab/webhooks/push`
+
+## Testing
+
+Run focused tests:
+
+```powershell
+php artisan test --compact --filter=GitHubWebhookControllerTest
+php artisan test --compact --filter=WebhookCommitProcessingTest
+php artisan test --compact --filter=CommitCategorizerServiceTest
+```
+
+## Production Notes
+
+- Use HTTPS for webhook endpoint.
+- Keep `GITHUB_WEBHOOK_SECRET` rotated and stored securely.
+- Run at least one dedicated queue worker for `changelog` queue.
+- Configure process supervision (systemd/Supervisor/Kubernetes) for queue workers.
+- Enable centralized logs and failed job monitoring.

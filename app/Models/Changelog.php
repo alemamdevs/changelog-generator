@@ -19,7 +19,6 @@ use Illuminate\Support\Carbon;
  * @property int $position
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- *
  * @property-read Release $release
  */
 class Changelog extends Model
@@ -27,10 +26,7 @@ class Changelog extends Model
     /**
      * Get the attributes that aren't mass assignable.
      */
-    protected function guarded(): array
-    {
-        return ['id'];
-    }
+    protected $guarded = ['id'];
 
     /**
      * Get the attributes that should be cast.
