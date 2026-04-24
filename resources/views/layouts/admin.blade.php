@@ -11,6 +11,7 @@
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <a href="{{ url('/') }}" class="text-lg font-semibold tracking-tight text-white">Auto Changelog</a>
             <nav class="flex items-center gap-2 text-sm">
+                <a href="{{ route('admin.projects.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Projects</a>
                 <a href="{{ route('admin.releases.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Releases</a>
                 <a href="{{ route('admin.webhooks.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Webhooks</a>
                 <a href="{{ route('admin.webhooks.configuration') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Configuration</a>

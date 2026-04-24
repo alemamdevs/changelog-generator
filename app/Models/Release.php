@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Release extends Model
@@ -59,5 +60,13 @@ class Release extends Model
     public function webhookDeliveries(): HasMany
     {
         return $this->hasMany(WebhookDelivery::class, 'release_id', 'id');
+    }
+
+    /**
+     * Get the project this release belongs to.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'repository_full_name', 'repository_full_name');
     }
 }

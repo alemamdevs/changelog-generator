@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Changelog;
 
+use App\Models\Project;
 use App\Models\Release;
 use App\Models\WebhookDelivery;
 use App\Repositories\ChangelogEntryRepositoryInterface;
@@ -80,6 +81,15 @@ final class WebhookCommitProcessingService
         $versionData = $this->semver->nextVersion($latestRelease, $categorized->all());
 
         return DB::transaction(function () use ($categorized, $delivery, $versionData, $repositoryFullName, $branch): Release {
+            Project::query()->firstOrCreate(
+                ['repository_full_name' => $repositoryFullName],
+                [
+                    'name' => null,
+                    'default_branch' => $branch !== '' ? $branch : 'main',
+                    'is_active' => true,
+                ],
+            );
+
             $release = $this->runRepository->createRun([
                 'version' => $versionData['version'],
                 'major' => $versionData['major'],

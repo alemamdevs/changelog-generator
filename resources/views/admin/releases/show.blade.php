@@ -3,7 +3,7 @@
 @section('content')
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <a href="{{ route('admin.releases.index') }}" class="text-sm text-slate-400 hover:text-white">← Back to releases</a>
+            <a href="{{ $release->project ? route('admin.projects.show', $release->project) : route('admin.projects.index') }}" class="text-sm text-slate-400 hover:text-white">← Back to project</a>
             <h1 class="mt-2 text-2xl font-semibold text-white">Release {{ $release->version }}</h1>
             <p class="mt-1 text-sm text-slate-400">{{ $release->repository_full_name }} · {{ $release->branch }}</p>
         </div>

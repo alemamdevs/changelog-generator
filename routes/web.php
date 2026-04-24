@@ -1,16 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ReleaseController;
 use App\Http\Controllers\Admin\WebhookConfigurationController;
 use App\Http\Controllers\Admin\WebhookDeliveryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('admin.releases.index');
+    return redirect()->route('admin.projects.index');
 });
 
 // Admin releases dashboard
 Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+
     Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');
     Route::get('releases/{release}', [ReleaseController::class, 'show'])->name('releases.show');
     Route::get('webhooks/configuration', [WebhookConfigurationController::class, 'index'])->name('webhooks.configuration');
