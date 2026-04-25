@@ -41,10 +41,12 @@ class ChangelogSeeder extends Seeder
 
         foreach ($projects as $projectIndex => $projectData) {
             $project = Project::query()->updateOrCreate(
-                ['repository_full_name' => $projectData['repository']],
+                ['github_repo' => $projectData['repository']],
                 [
                     'name' => $projectData['name'],
+                    'repository_full_name' => $projectData['repository'],
                     'default_branch' => $projectData['branch'],
+                    'webhook_secret' => $faker->sha256(),
                     'is_active' => true,
                 ],
             );
@@ -70,7 +72,7 @@ class ChangelogSeeder extends Seeder
 
                 $release = Release::query()->updateOrCreate(
                     [
-                        'repository_full_name' => $project->repository_full_name,
+                        'repository_full_name' => $project->github_repo,
                         'version' => $version,
                     ],
                     [
@@ -82,7 +84,7 @@ class ChangelogSeeder extends Seeder
                         'generated_at' => $generatedAt,
                         'markdown_path' => sprintf(
                             'changelogs/%s/CHANGELOG-%s.md',
-                            str_replace('/', '-', $project->repository_full_name),
+                            str_replace('/', '-', $project->github_repo),
                             $version,
                         ),
                     ],
@@ -104,7 +106,7 @@ class ChangelogSeeder extends Seeder
                     $isBreaking = $releaseNumber === 5 && $commitIndex === 1;
                     $category = $isBreaking ? 'breaking' : $mappedType['category'];
                     $heading = $isBreaking ? 'Breaking Changes' : $mappedType['heading'];
-                    $commitHash = sha1($project->repository_full_name.'|'.$version.'|'.$commitIndex);
+                    $commitHash = sha1($project->github_repo.'|'.$version.'|'.$commitIndex);
                     $authoredAt = (clone $generatedAt)->subHours($commitCount - $commitIndex + 1);
                     $message = $type.'('.$scope.')'.($isBreaking ? '!' : '').': '.$subject;
 
@@ -114,7 +116,7 @@ class ChangelogSeeder extends Seeder
 
                     Commit::query()->create([
                         'release_id' => $release->id,
-                        'repository_full_name' => $project->repository_full_name,
+                        'repository_full_name' => $project->github_repo,
                         'commit_hash' => $commitHash,
                         'author' => $faker->name(),
                         'message' => $message,
@@ -131,7 +133,7 @@ class ChangelogSeeder extends Seeder
 
                     ProcessedCommit::query()->updateOrCreate(
                         [
-                            'repository_full_name' => $project->repository_full_name,
+                            'repository_full_name' => $project->github_repo,
                             'commit_hash' => $commitHash,
                         ],
                         [
@@ -175,7 +177,7 @@ class ChangelogSeeder extends Seeder
                 }
 
                 $release->update([
-                    'markdown_content' => "# Changelog {$version}\n\nRepository: {$project->repository_full_name}\n\n".implode("\n\n", $markdownSections)."\n",
+                    'markdown_content' => "# Changelog {$version}\n\nRepository: {$project->github_repo}\n\n".implode("\n\n", $markdownSections)."\n",
                 ]);
 
                 WebhookDelivery::query()->updateOrCreate(
@@ -185,13 +187,13 @@ class ChangelogSeeder extends Seeder
                     ],
                     [
                         'event' => 'push',
-                        'repository_full_name' => $project->repository_full_name,
+                        'repository_full_name' => $project->github_repo,
                         'ref' => 'refs/heads/'.$project->default_branch,
                         'signature_valid' => true,
                         'status' => 'processed',
                         'payload' => [
                             'ref' => 'refs/heads/'.$project->default_branch,
-                            'repository' => ['full_name' => $project->repository_full_name],
+                            'repository' => ['full_name' => $project->github_repo],
                             'commits' => $payloadCommits,
                         ],
                         'release_id' => $release->id,

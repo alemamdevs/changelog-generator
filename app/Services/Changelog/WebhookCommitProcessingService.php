@@ -12,6 +12,7 @@ use App\Repositories\ChangelogRunRepositoryInterface;
 use App\Repositories\CommitRepositoryInterface;
 use App\Repositories\ProcessedCommitRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class WebhookCommitProcessingService
 {
@@ -82,10 +83,12 @@ final class WebhookCommitProcessingService
 
         return DB::transaction(function () use ($categorized, $delivery, $versionData, $repositoryFullName, $branch): Release {
             Project::query()->firstOrCreate(
-                ['repository_full_name' => $repositoryFullName],
+                ['github_repo' => $repositoryFullName],
                 [
                     'name' => null,
+                    'repository_full_name' => $repositoryFullName,
                     'default_branch' => $branch !== '' ? $branch : 'main',
+                    'webhook_secret' => Str::random(64),
                     'is_active' => true,
                 ],
             );

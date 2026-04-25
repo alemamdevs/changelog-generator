@@ -4,8 +4,8 @@
     <div class="mb-6 flex items-center justify-between">
         <div>
             <a href="{{ route('admin.projects.index') }}" class="text-sm text-slate-400 hover:text-white">← Back to projects</a>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-white">{{ $project->name ?: $project->repository_full_name }}</h1>
-            <p class="mt-1 text-sm text-slate-400">{{ $project->repository_full_name }} · default branch {{ $project->default_branch }}</p>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-white">{{ $project->name ?: $project->github_repo }}</h1>
+            <p class="mt-1 text-sm text-slate-400">{{ $project->github_repo }} · default branch {{ $project->default_branch }}</p>
         </div>
         <a href="{{ route('admin.webhooks.configuration') }}" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800">Setup Webhooks</a>
     </div>

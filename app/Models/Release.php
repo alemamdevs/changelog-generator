@@ -21,6 +21,7 @@ class Release extends Model
     protected function casts(): array
     {
         return [
+            'user_id' => 'integer',
             'major' => 'integer',
             'minor' => 'integer',
             'patch' => 'integer',
@@ -35,7 +36,9 @@ class Release extends Model
      */
     public function commits(): HasMany
     {
-        return $this->hasMany(Commit::class, 'release_id', 'id')->orderBy('authored_at');
+        return $this->hasMany(Commit::class, 'release_id', 'id')
+            ->where('user_id', $this->user_id)
+            ->orderBy('authored_at');
     }
 
     /**
@@ -43,7 +46,9 @@ class Release extends Model
      */
     public function changelogs(): HasMany
     {
-        return $this->hasMany(Changelog::class, 'release_id', 'id')->orderBy('position');
+        return $this->hasMany(Changelog::class, 'release_id', 'id')
+            ->where('user_id', $this->user_id)
+            ->orderBy('position');
     }
 
     /**
@@ -67,6 +72,22 @@ class Release extends Model
      */
     public function project(): BelongsTo
     {
-        return $this->belongsTo(Project::class, 'repository_full_name', 'repository_full_name');
+        return $this->belongsTo(Project::class, 'repository_full_name', 'github_repo');
+    }
+
+    /**
+     * Resolve route binding scoped to the authenticated user.
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        $routeKey = $field ?? $this->getRouteKeyName();
+
+        $query = $this->newQuery()->where($routeKey, $value);
+
+        if (auth()->check()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return $query->first();
     }
 }

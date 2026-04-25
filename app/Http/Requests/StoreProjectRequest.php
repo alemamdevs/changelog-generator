@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class StoreProjectRequest extends FormRequest
 {
@@ -21,9 +22,17 @@ final class StoreProjectRequest extends FormRequest
      */
     public function rules(): array
     {
+        $userId = (int) $this->user()?->id;
+
         return [
             'name' => ['nullable', 'string', 'max:255'],
-            'repository_full_name' => ['required', 'string', 'max:255', 'regex:/^[^\s\/]+\/[^\s\/]+$/', 'unique:projects,repository_full_name'],
+            'github_repo' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[^\s\/]+\/[^\s\/]+$/',
+                Rule::unique('projects', 'github_repo')->where(static fn ($query) => $query->where('user_id', $userId)),
+            ],
             'default_branch' => ['required', 'string', 'max:128'],
         ];
     }
@@ -34,7 +43,7 @@ final class StoreProjectRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'repository_full_name.regex' => 'Repository must use the owner/name format.',
+            'github_repo.regex' => 'Repository must use the owner/name format.',
         ];
     }
 }

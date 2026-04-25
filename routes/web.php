@@ -12,8 +12,11 @@ Route::get('/', function () {
     return redirect()->route('admin.projects.index');
 });
 
-// Admin releases dashboard
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::view('login', 'welcome')->name('login');
+Route::view('register', 'welcome')->name('register');
+
+// Admin dashboard (private)
+Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(function () {
     Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');

@@ -9,19 +9,30 @@ use App\Http\Requests\StoreProjectRequest;
 use App\Models\Project;
 use App\Models\Release;
 use App\Models\WebhookDelivery;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 final class ProjectController extends Controller
 {
     public function index(Request $request): View
     {
-        $this->syncProjectsFromExistingData();
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        $this->authorize('viewAny', Project::class);
+
+        $this->syncProjectsFromExistingData((int) $user->id);
 
         $projects = Project::query()
+            ->ownedBy((int) $user->id)
             ->withCount('releases')
             ->with('latestRelease')
-            ->orderBy('repository_full_name')
+            ->orderBy('github_repo')
             ->paginate(12)
             ->withQueryString();
 
@@ -30,9 +41,18 @@ final class ProjectController extends Controller
         ]);
     }
 
-    public function show(Project $project): View
+    public function show(Request $request, Project $project): View
     {
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        $this->authorize('view', $project);
+
         $releases = $project->releases()
+            ->where('user_id', $user->id)
             ->orderByDesc('generated_at')
             ->paginate(10)
             ->withQueryString();
@@ -43,14 +63,24 @@ final class ProjectController extends Controller
         ]);
     }
 
-    public function store(StoreProjectRequest $request)
+    public function store(StoreProjectRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        $this->authorize('create', Project::class);
 
         $project = Project::query()->create([
+            'user_id' => $user->id,
             'name' => $validated['name'] ?? null,
-            'repository_full_name' => $validated['repository_full_name'],
+            'github_repo' => $validated['github_repo'],
+            'repository_full_name' => $validated['github_repo'],
             'default_branch' => $validated['default_branch'],
+            'webhook_secret' => Str::random(64),
             'is_active' => true,
         ]);
 
@@ -59,15 +89,17 @@ final class ProjectController extends Controller
             ->with('status', 'Project has been added successfully.');
     }
 
-    private function syncProjectsFromExistingData(): void
+    private function syncProjectsFromExistingData(int $userId): void
     {
         $releaseRepositories = Release::query()
+            ->where('user_id', $userId)
             ->whereNotNull('repository_full_name')
             ->where('repository_full_name', '!=', '')
             ->distinct()
             ->pluck('repository_full_name');
 
         $webhookRepositories = WebhookDelivery::query()
+            ->where('user_id', $userId)
             ->whereNotNull('repository_full_name')
             ->where('repository_full_name', '!=', '')
             ->distinct()
@@ -87,15 +119,19 @@ final class ProjectController extends Controller
         Project::query()->upsert(
             $repositories
                 ->map(static fn (string $repositoryFullName): array => [
+                    'user_id' => $userId,
+                    'name' => null,
+                    'github_repo' => $repositoryFullName,
                     'repository_full_name' => $repositoryFullName,
                     'default_branch' => 'main',
+                    'webhook_secret' => Str::random(64),
                     'is_active' => true,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp,
                 ])
                 ->all(),
-            ['repository_full_name'],
-            ['updated_at'],
+            ['user_id', 'github_repo'],
+            ['repository_full_name', 'updated_at'],
         );
     }
 }

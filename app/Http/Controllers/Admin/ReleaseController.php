@@ -16,7 +16,19 @@ final class ReleaseController extends Controller
      */
     public function index(Request $request): View
     {
-        $releases = Release::query()->orderByDesc('generated_at')->paginate(10)->withQueryString();
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        $this->authorize('viewAny', Release::class);
+
+        $releases = Release::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('generated_at')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.releases.index', ['releases' => $releases]);
     }
@@ -24,12 +36,24 @@ final class ReleaseController extends Controller
     /**
      * Show a single release and its changelog/commits.
      */
-    public function show(Release $release): View
+    public function show(Request $request, Release $release): View
     {
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        $this->authorize('view', $release);
+
         $release->load([
             'project',
-            'changelogs' => fn ($query) => $query->orderBy('position'),
-            'commits' => fn ($query) => $query->orderBy('authored_at'),
+            'changelogs' => fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->orderBy('position'),
+            'commits' => fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->orderBy('authored_at'),
         ]);
 
         return view('admin.releases.show', ['release' => $release]);

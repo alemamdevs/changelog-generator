@@ -30,9 +30,9 @@
             </div>
 
             <div>
-                <label for="repository_full_name" class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Repository</label>
-                <input id="repository_full_name" name="repository_full_name" value="{{ old('repository_full_name') }}" required placeholder="owner/repository" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
-                @error('repository_full_name')
+                <label for="github_repo" class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Repository</label>
+                <input id="github_repo" name="github_repo" value="{{ old('github_repo') }}" required placeholder="owner/repository" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
+                @error('github_repo')
                     <p class="mt-1 text-xs text-rose-300">{{ $message }}</p>
                 @enderror
             </div>
@@ -66,10 +66,10 @@
                     @forelse($projects as $project)
                         <tr class="hover:bg-slate-800/40">
                             <td class="px-4 py-3">
-                                <p class="font-medium text-white">{{ $project->name ?: \Illuminate\Support\Str::after($project->repository_full_name, '/') }}</p>
+                                <p class="font-medium text-white">{{ $project->name ?: \Illuminate\Support\Str::after($project->github_repo, '/') }}</p>
                                 <p class="text-xs text-slate-500">{{ $project->default_branch }}</p>
                             </td>
-                            <td class="px-4 py-3 text-slate-300">{{ $project->repository_full_name }}</td>
+                            <td class="px-4 py-3 text-slate-300">{{ $project->github_repo }}</td>
                             <td class="px-4 py-3 text-slate-300">{{ $project->releases_count }}</td>
                             <td class="px-4 py-3 text-slate-400">{{ $project->latestRelease?->version ?? 'n/a' }}</td>
                             <td class="px-4 py-3">
