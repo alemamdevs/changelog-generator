@@ -26,9 +26,22 @@ test('projects page shows setup project and existing projects', function (): voi
 
     $response
         ->assertOk()
-        ->assertSee('Projects')
-        ->assertSee('Setup Project')
+        ->assertSee('User dashboard')
+        ->assertSee('Your project dashboard')
+        ->assertSee('Create Project')
+        ->assertSee('onclick="document.getElementById(\'create-project\')?.scrollIntoView', false)
         ->assertSee('acme/changelog-generator');
+});
+
+test('projects page shows an empty state when no projects exist', function (): void {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('admin.projects.index'));
+
+    $response
+        ->assertOk()
+        ->assertSee('No projects yet')
+        ->assertSee('Create your first project');
 });
 
 test('project details page shows release history only for that project', function (): void {
@@ -44,7 +57,7 @@ test('project details page shows release history only for that project', functio
         'is_active' => true,
     ]);
 
-    Project::query()->create([
+    $otherProject = Project::query()->create([
         'user_id' => $user->id,
         'name' => 'Project B',
         'github_repo' => 'acme/project-b',
@@ -55,6 +68,7 @@ test('project details page shows release history only for that project', functio
     ]);
 
     Release::query()->create([
+        'project_id' => $project->id,
         'user_id' => $user->id,
         'version' => 'v1.2.3',
         'branch' => 'main',
@@ -63,6 +77,7 @@ test('project details page shows release history only for that project', functio
     ]);
 
     Release::query()->create([
+        'project_id' => $otherProject->id,
         'user_id' => $user->id,
         'version' => 'v9.9.9',
         'branch' => 'main',
@@ -74,7 +89,8 @@ test('project details page shows release history only for that project', functio
 
     $response
         ->assertOk()
-        ->assertSee('Release History')
+        ->assertSee('Release history')
+        ->assertSee('Latest release')
         ->assertSee('v1.2.3')
         ->assertDontSee('v9.9.9');
 });

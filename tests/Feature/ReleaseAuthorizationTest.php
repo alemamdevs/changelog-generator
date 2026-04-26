@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\Project;
 use App\Models\Release;
 use App\Models\User;
+use App\Models\WebhookDelivery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -49,5 +51,66 @@ test('release show does not leak by id across users', function (): void {
 
     $this->actingAs($user)
         ->get(route('admin.releases.show', $otherRelease))
+        ->assertNotFound();
+});
+
+test('webhook deliveries are scoped to the authenticated user', function (): void {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $userProject = Project::query()->create([
+        'user_id' => $user->id,
+        'name' => 'Tenant A',
+        'github_repo' => 'tenant-a/repo',
+        'repository_full_name' => 'tenant-a/repo',
+        'default_branch' => 'main',
+        'webhook_secret' => 'secret-a',
+        'is_active' => true,
+    ]);
+
+    $otherProject = Project::query()->create([
+        'user_id' => $otherUser->id,
+        'name' => 'Tenant B',
+        'github_repo' => 'tenant-b/repo',
+        'repository_full_name' => 'tenant-b/repo',
+        'default_branch' => 'main',
+        'webhook_secret' => 'secret-b',
+        'is_active' => true,
+    ]);
+
+    WebhookDelivery::query()->create([
+        'project_id' => $userProject->id,
+        'user_id' => $user->id,
+        'provider' => 'github',
+        'event' => 'push',
+        'delivery_id' => 'delivery-1',
+        'repository_full_name' => 'tenant-a/repo',
+        'ref' => 'refs/heads/main',
+        'signature_valid' => true,
+        'status' => 'queued',
+        'payload' => [],
+    ]);
+
+    $otherDelivery = WebhookDelivery::query()->create([
+        'project_id' => $otherProject->id,
+        'user_id' => $otherUser->id,
+        'provider' => 'github',
+        'event' => 'push',
+        'delivery_id' => 'delivery-2',
+        'repository_full_name' => 'tenant-b/repo',
+        'ref' => 'refs/heads/main',
+        'signature_valid' => true,
+        'status' => 'queued',
+        'payload' => [],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.webhooks.index'))
+        ->assertOk()
+        ->assertSee('tenant-a/repo')
+        ->assertDontSee('tenant-b/repo');
+
+    $this->actingAs($user)
+        ->get(route('admin.webhooks.show', $otherDelivery))
         ->assertNotFound();
 });

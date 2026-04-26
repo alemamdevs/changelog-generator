@@ -20,10 +20,28 @@ final class ProcessedCommit extends Model
     protected function casts(): array
     {
         return [
+            'project_id' => 'integer',
+            'user_id' => 'integer',
             'processed_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the project associated with this processed commit.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id', 'id');
+    }
+
+    /**
+     * Get the user associated with this processed commit.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     /**

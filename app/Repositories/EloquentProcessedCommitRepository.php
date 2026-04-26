@@ -8,18 +8,21 @@ use App\Models\ProcessedCommit;
 
 final class EloquentProcessedCommitRepository implements ProcessedCommitRepositoryInterface
 {
-    public function isProcessed(string $repositoryFullName, string $commitHash): bool
+    public function isProcessed(int $projectId, string $commitHash): bool
     {
-        return ProcessedCommit::query()
-            ->where('repository_full_name', $repositoryFullName)
-            ->where('commit_hash', $commitHash)
-            ->exists();
+        $query = ProcessedCommit::query()
+            ->where('project_id', $projectId)
+            ->where('commit_hash', $commitHash);
+
+        return $query->exists();
     }
 
-    public function markProcessed(string $repositoryFullName, string $commitHash, ?int $releaseId = null): void
+    public function markProcessed(int $projectId, int $userId, string $repositoryFullName, string $commitHash, ?int $releaseId = null): void
     {
         ProcessedCommit::query()->updateOrCreate(
             [
+                'project_id' => $projectId,
+                'user_id' => $userId,
                 'repository_full_name' => $repositoryFullName,
                 'commit_hash' => $commitHash,
             ],

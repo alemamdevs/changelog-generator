@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\LogsSuspiciousAccess;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Release extends Model
 {
+    use HasUserScope;
+    use LogsSuspiciousAccess;
+
     /**
      * Get the attributes that aren't mass assignable.
      */
@@ -21,6 +26,7 @@ class Release extends Model
     protected function casts(): array
     {
         return [
+            'project_id' => 'integer',
             'user_id' => 'integer',
             'major' => 'integer',
             'minor' => 'integer',
@@ -37,7 +43,6 @@ class Release extends Model
     public function commits(): HasMany
     {
         return $this->hasMany(Commit::class, 'release_id', 'id')
-            ->where('user_id', $this->user_id)
             ->orderBy('authored_at');
     }
 
@@ -47,7 +52,6 @@ class Release extends Model
     public function changelogs(): HasMany
     {
         return $this->hasMany(Changelog::class, 'release_id', 'id')
-            ->where('user_id', $this->user_id)
             ->orderBy('position');
     }
 
@@ -72,7 +76,7 @@ class Release extends Model
      */
     public function project(): BelongsTo
     {
-        return $this->belongsTo(Project::class, 'repository_full_name', 'github_repo');
+        return $this->belongsTo(Project::class, 'project_id', 'id');
     }
 
     /**
@@ -83,11 +87,12 @@ class Release extends Model
         $routeKey = $field ?? $this->getRouteKeyName();
 
         $query = $this->newQuery()->where($routeKey, $value);
+        $release = $query->first();
 
-        if (auth()->check()) {
-            $query->where('user_id', auth()->id());
+        if ($release === null && auth()->check()) {
+            $this->logSuspiciousAccess('tenant_model_not_found', $value);
         }
 
-        return $query->first();
+        return $release;
     }
 }

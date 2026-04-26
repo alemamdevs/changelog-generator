@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,10 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register application service providers that need to be loaded early.
-        // Ensure the ChangelogServiceProvider bindings are available without
-        // requiring manual config changes.
-        $this->app->register(\App\Providers\ChangelogServiceProvider::class);
+        $this->app->register(ChangelogServiceProvider::class);
     }
 
     /**
@@ -22,6 +22,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        RateLimiter::for('webhook', function (Request $request): Limit {
+            return Limit::perMinute(30)
+                ->by($request->ip() ?? 'webhook')
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'message' => 'Too many webhook requests.',
+                    ], 429, $headers);
+                });
+        });
     }
 }

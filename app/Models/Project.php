@@ -4,18 +4,34 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\LogsSuspiciousAccess;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Crypt;
 
 class Project extends Model
 {
+    use HasUserScope;
+    use LogsSuspiciousAccess;
+
     /**
      * Get the attributes that aren't mass assignable.
      */
     protected $guarded = ['id'];
+
+    /**
+     * Hide internal webhook secret storage columns.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'webhook_secret_ciphertext',
+        'webhook_secret_hash',
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -31,11 +47,34 @@ class Project extends Model
     }
 
     /**
-     * Scope to projects owned by a specific user.
+     * Store webhook secrets encrypted and keep a searchable hash.
      */
-    public function scopeOwnedBy(Builder $query, int $userId): Builder
+    protected function webhookSecret(): Attribute
     {
-        return $query->where('user_id', $userId);
+        return Attribute::make(
+            get: function (?string $value, array $attributes): ?string {
+                $ciphertext = $attributes['webhook_secret_ciphertext'] ?? null;
+
+                if ($ciphertext === null || $ciphertext === '') {
+                    return null;
+                }
+
+                return Crypt::decryptString($ciphertext);
+            },
+            set: function (?string $value): array {
+                if ($value === null || $value === '') {
+                    return [
+                        'webhook_secret_ciphertext' => null,
+                        'webhook_secret_hash' => null,
+                    ];
+                }
+
+                return [
+                    'webhook_secret_ciphertext' => Crypt::encryptString($value),
+                    'webhook_secret_hash' => hash('sha256', $value),
+                ];
+            }
+        );
     }
 
     /**
@@ -51,7 +90,7 @@ class Project extends Model
      */
     public function releases(): HasMany
     {
-        return $this->hasMany(Release::class, 'repository_full_name', 'github_repo')
+        return $this->hasMany(Release::class, 'project_id', 'id')
             ->where('user_id', $this->user_id);
     }
 
@@ -60,7 +99,7 @@ class Project extends Model
      */
     public function latestRelease(): HasOne
     {
-        return $this->hasOne(Release::class, 'repository_full_name', 'github_repo')
+        return $this->hasOne(Release::class, 'project_id', 'id')
             ->where('user_id', $this->user_id)
             ->latestOfMany('generated_at');
     }
@@ -73,11 +112,12 @@ class Project extends Model
         $routeKey = $field ?? $this->getRouteKeyName();
 
         $query = $this->newQuery()->where($routeKey, $value);
+        $project = $query->first();
 
-        if (auth()->check()) {
-            $query->where('user_id', auth()->id());
+        if ($project === null && auth()->check()) {
+            $this->logSuspiciousAccess('tenant_model_not_found', $value);
         }
 
-        return $query->first();
+        return $project;
     }
 }

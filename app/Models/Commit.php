@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -13,6 +14,8 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $release_id
+ * @property int|null $project_id
+ * @property int|null $user_id
  * @property string|null $repository_full_name
  * @property string $commit_hash
  * @property string|null $author
@@ -32,6 +35,8 @@ use Illuminate\Support\Carbon;
  */
 class Commit extends Model
 {
+    use HasUserScope;
+
     /**
      * Get the attributes that aren't mass assignable.
      */
@@ -43,12 +48,22 @@ class Commit extends Model
     protected function casts(): array
     {
         return [
+            'project_id' => 'integer',
+            'user_id' => 'integer',
             'is_breaking' => 'boolean',
             'authored_at' => 'datetime',
             'committed_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the project that owns the commit.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id', 'id');
     }
 
     /**

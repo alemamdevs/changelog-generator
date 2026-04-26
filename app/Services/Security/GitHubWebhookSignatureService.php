@@ -6,9 +6,9 @@ namespace App\Services\Security;
 
 final class GitHubWebhookSignatureService
 {
-    public function isValid(string $rawPayload, ?string $signatureHeader): bool
+    public function isValid(string $rawPayload, ?string $signatureHeader, ?string $secret = null): bool
     {
-        $secret = (string) config('services.github.webhook_secret', '');
+        $secret ??= (string) config('services.github.webhook_secret', '');
 
         if ($secret === '' || $signatureHeader === null || $signatureHeader === '') {
             return false;

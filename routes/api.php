@@ -15,10 +15,12 @@ Route::prefix('auth')->group(function (): void {
     Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
 });
 
-Route::post('webhooks/push', [GitWebhookController::class, 'handle'])->name('api.webhooks.push');
-Route::post('github/webhooks/push', [GitWebhookController::class, 'handle'])->name('api.github.webhooks.push');
-Route::post('gitlab/webhooks/push', [GitWebhookController::class, 'handle'])->name('api.gitlab.webhooks.push');
-Route::post('git/webhook', [GitWebhookController::class, 'handle'])->name('api.git.webhook');
+Route::middleware('throttle:webhook')->group(function (): void {
+    Route::post('webhooks/push', [GitWebhookController::class, 'handle'])->name('api.webhooks.push');
+    Route::post('github/webhooks/push', [GitWebhookController::class, 'handle'])->name('api.github.webhooks.push');
+    Route::post('gitlab/webhooks/push', [GitWebhookController::class, 'handle'])->name('api.gitlab.webhooks.push');
+    Route::post('git/webhook', [GitWebhookController::class, 'handle'])->name('api.git.webhook');
+});
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('auth')->group(function (): void {

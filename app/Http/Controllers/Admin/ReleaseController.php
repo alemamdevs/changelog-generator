@@ -26,6 +26,7 @@ final class ReleaseController extends Controller
 
         $releases = Release::query()
             ->where('user_id', $user->id)
+            ->with(['project:id,name,github_repo,default_branch'])
             ->orderByDesc('generated_at')
             ->paginate(10)
             ->withQueryString();
@@ -47,12 +48,10 @@ final class ReleaseController extends Controller
         $this->authorize('view', $release);
 
         $release->load([
-            'project',
+            'project:id,name,github_repo,default_branch',
             'changelogs' => fn ($query) => $query
-                ->where('user_id', $user->id)
                 ->orderBy('position'),
             'commits' => fn ($query) => $query
-                ->where('user_id', $user->id)
                 ->orderBy('authored_at'),
         ]);
 

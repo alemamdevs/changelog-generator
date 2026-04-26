@@ -6,9 +6,9 @@ namespace App\Services\Security;
 
 final class GitLabWebhookTokenService
 {
-    public function isValid(?string $tokenHeader): bool
+    public function isValid(?string $tokenHeader, ?string $secret = null): bool
     {
-        $secret = (string) config('services.gitlab.webhook_secret', '');
+        $secret ??= (string) config('services.gitlab.webhook_secret', '');
 
         if ($secret === '' || $tokenHeader === null || $tokenHeader === '') {
             return false;

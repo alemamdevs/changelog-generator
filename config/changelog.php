@@ -7,4 +7,8 @@ return [
     ],
 
     'default_repository' => env('CHANGELOG_DEFAULT_REPOSITORY', 'local/repository'),
+
+    'webhooks' => [
+        'env_file' => env('CHANGELOG_ENV_FILE', base_path('.env')),
+    ],
 ];

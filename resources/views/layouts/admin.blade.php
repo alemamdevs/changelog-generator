@@ -15,6 +15,7 @@
                 <a href="{{ route('admin.releases.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Releases</a>
                 <a href="{{ route('admin.webhooks.index') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Webhooks</a>
                 <a href="{{ route('admin.webhooks.configuration') }}" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white">Configuration</a>
+                <a href="{{ route('admin.projects.index') }}#create-project" data-scroll-target="create-project" onclick="window.location.href='{{ route('admin.projects.index') }}#create-project'; return false;" class="rounded-lg border border-indigo-500/50 bg-indigo-500/10 px-3 py-2 font-medium text-indigo-100 hover:bg-indigo-500/20">Create Project</a>
             </nav>
         </div>
     </header>

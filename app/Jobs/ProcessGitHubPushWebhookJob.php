@@ -28,8 +28,11 @@ final class ProcessGitHubPushWebhookJob implements ShouldQueue
      */
     public array $backoff = [5, 15, 30, 60];
 
-    public function __construct(public int $deliveryId)
-    {
+    public function __construct(
+        public int $deliveryId,
+        public int $projectId,
+        public int $userId,
+    ) {
         $this->onConnection((string) config('changelog.queue.connection', 'redis'));
         $this->onQueue((string) config('changelog.queue.name', 'changelog'));
     }
@@ -44,7 +47,7 @@ final class ProcessGitHubPushWebhookJob implements ShouldQueue
 
         $delivery->update(['status' => 'processing']);
 
-        $processingService->processDelivery($delivery);
+        $processingService->processDelivery($delivery, $this->projectId, $this->userId);
     }
 
     public function failed(Throwable $exception): void

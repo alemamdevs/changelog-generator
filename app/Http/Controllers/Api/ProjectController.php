@@ -46,7 +46,6 @@ final class ProjectController extends Controller
         $project->load([
             'latestRelease',
             'releases' => fn ($query) => $query
-                ->where('user_id', $user->id)
                 ->latest('generated_at')
                 ->limit(20),
         ]);

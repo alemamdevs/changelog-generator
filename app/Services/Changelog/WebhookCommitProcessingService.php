@@ -12,7 +12,6 @@ use App\Repositories\ChangelogRunRepositoryInterface;
 use App\Repositories\CommitRepositoryInterface;
 use App\Repositories\ProcessedCommitRepositoryInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 final class WebhookCommitProcessingService
 {
@@ -26,12 +25,33 @@ final class WebhookCommitProcessingService
         private MarkdownChangelogRendererService $markdown,
     ) {}
 
-    public function processDelivery(WebhookDelivery $delivery): ?Release
+    public function processDelivery(WebhookDelivery $delivery, int $projectId, int $userId): ?Release
     {
         $payload = (array) $delivery->payload;
-        $repositoryFullName = (string) data_get($payload, 'repository.full_name', $delivery->repository_full_name);
         $ref = (string) data_get($payload, 'ref', $delivery->ref);
         $branch = (string) collect(explode('/', $ref))->last();
+
+        $project = Project::query()
+            ->ownedBy($userId)
+            ->whereKey($projectId)
+            ->first();
+
+        if ($project === null) {
+            $delivery->update([
+                'status' => 'failed',
+                'processed_at' => now(),
+                'error_message' => 'Webhook project could not be resolved.',
+            ]);
+
+            return null;
+        }
+
+        $repositoryFullName = (string) $project->github_repo;
+
+        $delivery->update([
+            'project_id' => $project->id,
+            'user_id' => $project->user_id,
+        ]);
 
         $commits = collect((array) data_get($payload, 'commits', []))
             ->map(function (mixed $commit) {
@@ -58,7 +78,7 @@ final class WebhookCommitProcessingService
         }
 
         $newCommits = $commits
-            ->reject(fn (array $commit): bool => $this->processedCommitRepository->isProcessed($repositoryFullName, $commit['hash']))
+            ->reject(fn (array $commit): bool => $this->processedCommitRepository->isProcessed($project->id, $commit['hash']))
             ->values();
 
         if ($newCommits->isEmpty()) {
@@ -75,25 +95,17 @@ final class WebhookCommitProcessingService
         })->values();
 
         $latestRelease = Release::query()
-            ->where('repository_full_name', $repositoryFullName)
+            ->ownedBy($project->user_id)
+            ->where('project_id', $project->id)
             ->latest('generated_at')
             ->first();
 
         $versionData = $this->semver->nextVersion($latestRelease, $categorized->all());
 
-        return DB::transaction(function () use ($categorized, $delivery, $versionData, $repositoryFullName, $branch): Release {
-            Project::query()->firstOrCreate(
-                ['github_repo' => $repositoryFullName],
-                [
-                    'name' => null,
-                    'repository_full_name' => $repositoryFullName,
-                    'default_branch' => $branch !== '' ? $branch : 'main',
-                    'webhook_secret' => Str::random(64),
-                    'is_active' => true,
-                ],
-            );
-
+        return DB::transaction(function () use ($categorized, $delivery, $versionData, $repositoryFullName, $branch, $project): Release {
             $release = $this->runRepository->createRun([
+                'project_id' => $project->id,
+                'user_id' => $project->user_id,
                 'version' => $versionData['version'],
                 'major' => $versionData['major'],
                 'minor' => $versionData['minor'],
@@ -110,6 +122,8 @@ final class WebhookCommitProcessingService
             foreach ($categorized as $commit) {
                 $this->commitRepository->createCommit([
                     'release_id' => $release->id,
+                    'project_id' => $project->id,
+                    'user_id' => $project->user_id,
                     'repository_full_name' => $repositoryFullName,
                     'commit_hash' => $commit['hash'],
                     'author' => $commit['author'],
@@ -127,6 +141,8 @@ final class WebhookCommitProcessingService
 
                 $this->changelogEntryRepository->createEntry([
                     'release_id' => $release->id,
+                    'project_id' => $project->id,
+                    'user_id' => $project->user_id,
                     'category' => $commit['category']->heading(),
                     'description' => $commit['subject'],
                     'details' => $commit['body'],
@@ -140,7 +156,7 @@ final class WebhookCommitProcessingService
                     'category' => $commit['category'],
                 ];
 
-                $this->processedCommitRepository->markProcessed($repositoryFullName, $commit['hash'], $release->id);
+                $this->processedCommitRepository->markProcessed($project->id, $project->user_id, $repositoryFullName, $commit['hash'], $release->id);
             }
 
             $rendered = $this->markdown->renderAndStore($release, $groupedCommits);

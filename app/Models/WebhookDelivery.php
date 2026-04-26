@@ -20,12 +20,30 @@ final class WebhookDelivery extends Model
     protected function casts(): array
     {
         return [
+            'project_id' => 'integer',
+            'user_id' => 'integer',
             'payload' => 'array',
             'signature_valid' => 'boolean',
             'processed_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the user associated with this webhook delivery.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    /**
+     * Get the project associated with this webhook delivery.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id', 'id');
     }
 
     /**
